@@ -1,0 +1,5 @@
+export const UserError = {
+  USER_NOT_EXISTS: 'USER_DO_NOT_EXISTS',
+  USER_EXISTS: 'USER_EXISTS',
+  NOT_FOUND: 'USER_EXISTS',
+};
