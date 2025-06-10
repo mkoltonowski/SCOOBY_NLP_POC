@@ -1,0 +1,3 @@
+export const DI_CONSTANTS = {
+  FIREBASE_ADMIN: 'FIREBASE_ADMIN',
+};

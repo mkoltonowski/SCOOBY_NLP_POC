@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { UserProviders } from './user';
-import { DatasourceModule } from '../datasource/datasource.module';
+import { SeriesApplicationModule } from './series.application/series.application.module';
 
 @Module({
-  imports: [DatasourceModule, CqrsModule],
+  imports: [CqrsModule, SeriesApplicationModule],
   providers: [...UserProviders],
-  exports: [...UserProviders],
+  exports: [...UserProviders, SeriesApplicationModule],
 })
 export class ApplicationModule {}
