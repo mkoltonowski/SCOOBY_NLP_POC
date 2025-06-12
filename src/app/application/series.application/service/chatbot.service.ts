@@ -26,7 +26,7 @@ export class ChatService {
 
     const hits = this.store.search(qVec, 4);
     const context = hits
-      .map((h, i) => `### Fragment ${i + 1}\n${JSON.stringify(h.text)}`)
+      .map((h, i) => `### CONTEXT ${i} \n${JSON.stringify(h.text)}`)
       .join('\n\n');
 
     console.log(context);
@@ -38,14 +38,29 @@ export class ChatService {
       },
       {
         role: 'system',
-        content: 'Jesteś specjalistycznym modelem do analizy kreskówek.',
+        content:
+          'Zawsze wybieraj jeden kontekst najbardziej pasujący do pytania użytkownika.',
+      },
+      {
+        role: 'system',
+        content: 'Domyślnie zakładaj że chodzi o scooby doo.',
+      },
+      {
+        role: 'system',
+        content:
+          'Jesteś specjalistycznym modelem do analizy kreskówek z kontekstu.',
       },
       { role: 'system', content: `### CONTEXT ${context}` },
       { role: 'user', content: question },
       {
         role: 'system',
         content:
-          'Jeżeli użytkownik nie zapyta o serial scooby doo, odmów udzielenia odpowiedzi i odrzuć kontekst ',
+          'Jeżeli użytkownik nie zapyta o serial scooby doo, odmów udzielenia odpowiedzi i odrzuć kontekst. Jeżeli nie możesz znaleźć odpowiedzi pośród kontekstu odpowiedz że brak ci wiedzy.',
+      },
+      {
+        role: 'system',
+        content:
+          'Odpowiadaj jakbyś był recenzentem filmowym i stosuj formę wypowiedzi otwartej.',
       },
     ];
 
@@ -56,12 +71,19 @@ export class ChatService {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'google/gemma-3-1b-it:free',
+        model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages,
         temperature: 0.1,
       }),
     }).then((r) => r.json());
 
-    return rsp.choices[0].message.content as string;
+    console.log(rsp);
+
+    const [answer] = (await rsp?.choices) ?? [];
+
+    return (
+      answer?.message?.content ??
+      'Przepraszamy, nie jesteśmy w stanie udzielić odpowiedzi.'
+    );
   }
 }
