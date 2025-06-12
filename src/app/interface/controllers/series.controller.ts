@@ -21,7 +21,7 @@ export class SeriesController {
 
   @Post('/ask')
   public async askChat(@Body() payload: QuestionDto) {
-    return { answer: await this.chatService.ask(payload.question) };
+    return { answer: await this.chatService.ask(payload.messages) };
   }
 
   @Post('/embeddings')

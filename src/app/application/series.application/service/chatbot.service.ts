@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { env, pipeline } from '@huggingface/transformers';
 import { VectorStoreService } from './vector-store.service';
+import { MessageDto } from '../../dtos/message.dto';
 
 @Injectable()
 export class ChatService {
@@ -18,10 +19,17 @@ export class ChatService {
     await this.store.load();
   }
 
-  async ask(question: string) {
+  getCurrentQuestionContent(questions: MessageDto[]) {
+    return questions.at(-1).content;
+  }
+
+  async ask(questions: MessageDto[]) {
     const extractor = await this.extractorPromise;
+
+    const currentMessage = this.getCurrentQuestionContent(questions);
+
     const qVec = (
-      await extractor(question, { pooling: 'mean', normalize: true })
+      await extractor(currentMessage, { pooling: 'mean', normalize: true })
     ).tolist()[0] as number[];
 
     const hits = this.store.search(qVec, 4);
@@ -29,8 +37,12 @@ export class ChatService {
       .map((h, i) => `### CONTEXT ${i} \n${JSON.stringify(h.text)}`)
       .join('\n\n');
 
-    console.log(context);
     const messages = [
+      {
+        role: 'system',
+        content:
+          'Jesteś specjalistycznym modelem do analizy kreskówek z kontekstu.',
+      },
       {
         role: 'system',
         content:
@@ -38,30 +50,25 @@ export class ChatService {
       },
       {
         role: 'system',
-        content:
-          'Zawsze wybieraj jeden kontekst najbardziej pasujący do pytania użytkownika.',
-      },
-      {
-        role: 'system',
         content: 'Domyślnie zakładaj że chodzi o scooby doo.',
       },
-      {
-        role: 'system',
-        content:
-          'Jesteś specjalistycznym modelem do analizy kreskówek z kontekstu.',
-      },
       { role: 'system', content: `### CONTEXT ${context}` },
-      { role: 'user', content: question },
-      {
-        role: 'system',
-        content:
-          'Jeżeli użytkownik nie zapyta o serial scooby doo, odmów udzielenia odpowiedzi i odrzuć kontekst. Jeżeli nie możesz znaleźć odpowiedzi pośród kontekstu odpowiedz że brak ci wiedzy.',
-      },
       {
         role: 'system',
         content:
           'Odpowiadaj jakbyś był recenzentem filmowym i stosuj formę wypowiedzi otwartej.',
       },
+      {
+        role: 'system',
+        content:
+          'Jeżeli użytkownik nie zapyta o serial scooby doo, odmów udzielenia odpowiedzi i odrzuć kontekst. ' +
+          'Jeżeli nie możesz znaleźć odpowiedzi pośród kontekstu odpowiedz że brak ci wiedzy.',
+      },
+      {
+        role: 'system',
+        content: 'Odpowiadaj wyłącznie na ostatnie pytanie użytkownika!',
+      },
+      ...questions,
     ];
 
     const rsp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -73,11 +80,10 @@ export class ChatService {
       body: JSON.stringify({
         model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
         messages,
-        temperature: 0.1,
+        store: true,
+        temperature: 0.3,
       }),
     }).then((r) => r.json());
-
-    console.log(rsp);
 
     const [answer] = (await rsp?.choices) ?? [];
 
