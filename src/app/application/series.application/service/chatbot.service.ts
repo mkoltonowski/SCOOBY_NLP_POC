@@ -29,13 +29,18 @@ export class ChatService {
     const currentMessage = this.getCurrentQuestionContent(questions);
 
     const qVec = (
-      await extractor(currentMessage, { pooling: 'mean', normalize: true })
+      await extractor('query: ' + currentMessage, {
+        pooling: 'mean',
+        normalize: true,
+      })
     ).tolist()[0] as number[];
 
     const hits = this.store.search(qVec, 4);
     const context = hits
       .map((h, i) => `### CONTEXT ${i} \n${JSON.stringify(h.text)}`)
       .join('\n\n');
+
+    console.log(context);
 
     const messages = [
       {
@@ -46,7 +51,7 @@ export class ChatService {
       {
         role: 'system',
         content:
-          'Twoją rolą jest odpowiadać użytkownikowi tylko na pytania związane z serią scooby-doo, czerp wiedzę z kontekstu',
+          'Twoją rolą jest odpowiadać użytkownikowi tylko na pytania związane z serią scooby-doo, czerp wiedzę wyłącznie z CONTEXT',
       },
       {
         role: 'system',
@@ -63,10 +68,6 @@ export class ChatService {
         content:
           'Jeżeli użytkownik nie zapyta o serial scooby doo, odmów udzielenia odpowiedzi i odrzuć kontekst. ' +
           'Jeżeli nie możesz znaleźć odpowiedzi pośród kontekstu odpowiedz że brak ci wiedzy.',
-      },
-      {
-        role: 'system',
-        content: 'Odpowiadaj wyłącznie na ostatnie pytanie użytkownika!',
       },
       ...questions,
     ];

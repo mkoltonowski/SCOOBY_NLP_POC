@@ -6,13 +6,14 @@ import * as fg from 'fast-glob';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { GenerateEmbeddingsCommand } from '../impl/generate-embeddings.command';
 import { VectorStoreService } from '../../service/vector-store.service';
+import { basePath } from '../../../../../common/util/path';
 
 @CommandHandler(GenerateEmbeddingsCommand)
 export class GenerateEmbeddingsHandler
   implements ICommandHandler<GenerateEmbeddingsCommand>
 {
   private readonly logger = new Logger(GenerateEmbeddingsHandler.name);
-  private readonly jsonGlob = 'docs/**/*.json';
+  private readonly jsonGlob = 'docs/*.json';
   private readonly outDir = 'embeddings';
   private readonly modelId = 'Xenova/e5-large-v2';
 
@@ -29,10 +30,29 @@ export class GenerateEmbeddingsHandler
       const raw = await fs.readFile(file, 'utf8');
       const json = JSON.parse(raw);
       const texts: string[] = Array.isArray(json)
-        ? json.map((o: any) => o.text ?? '')
-        : [json.text ?? ''];
+        ? json.map(
+            (o: any) =>
+              `title: ${o.name}` +
+              ` summary: ${this.stripHtml(o.summary)}` +
+              ` season: ${o.season}, episode: ${o.number}` +
+              ` rating: ${o.rating}`,
+          )
+        : [
+            ` title: ${json.name}` +
+              ` summary: ${this.stripHtml(json.summary)}` +
+              ` season: ${json.season}, episode: ${json.number}` +
+              ` rating: ${json.rating}`,
+          ];
 
-      const tensor: Tensor = await extractor(texts);
+      console.log(texts);
+      await this.saveDocuments(JSON.stringify(texts));
+      const tensor: Tensor = await extractor(
+        texts.map((t) => 'passage: ' + t),
+        {
+          pooling: 'mean',
+          normalize: true,
+        },
+      );
       const vectors = tensor.tolist() as number[][];
       const outPath = path.join(
         this.outDir,
@@ -43,5 +63,20 @@ export class GenerateEmbeddingsHandler
 
       await this.store.load();
     }
+  }
+
+  private saveDocuments = async (data: string) => {
+    await fs.writeFile(
+      path.join(basePath, '/docs/source', 'test.source.json'),
+      data,
+      {
+        flag: 'w',
+        encoding: 'utf8',
+      },
+    );
+  };
+
+  stripHtml(x = '') {
+    return x.replace(/<[^>]*>/g, ' ').trim();
   }
 }

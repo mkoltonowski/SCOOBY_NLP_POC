@@ -7,7 +7,10 @@ export class VectorStoreService {
   private vecs: number[][] = [];
   private texts: string[] = [];
 
-  async load(txtPath = 'docs/test.json', vecPath = 'embeddings/test.emb.json') {
+  async load(
+    txtPath = 'docs/source/test.source.json',
+    vecPath = 'embeddings/test.emb.json',
+  ) {
     if (!fs.existsSync(txtPath) || !fs.existsSync(txtPath)) {
       return;
     }
