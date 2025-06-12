@@ -1,12 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 import { readFile } from 'fs/promises';
+import * as fs from 'node:fs';
 
-@Injectable()
+@Injectable({ scope: Scope.DEFAULT })
 export class VectorStoreService {
   private vecs: number[][] = [];
   private texts: string[] = [];
 
   async load(txtPath = 'docs/test.json', vecPath = 'embeddings/test.emb.json') {
+    if (!fs.existsSync(txtPath) || !fs.existsSync(txtPath)) {
+      return;
+    }
+
     this.vecs = JSON.parse(await readFile(vecPath, 'utf8'));
     this.texts = JSON.parse(await readFile(txtPath, 'utf8'));
     if (this.vecs.length !== this.texts.length)

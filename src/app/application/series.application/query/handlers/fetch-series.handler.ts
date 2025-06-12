@@ -6,10 +6,14 @@ import { EpisodeDto } from '../../../dtos/episode.dto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { basePath } from '../../../../../common/util/path';
+import { VectorStoreService } from '../../service/vector-store.service';
 
 @QueryHandler(FetchSeriesQuery)
 export class FetchSeriesHandler implements IQueryHandler<FetchSeriesQuery> {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly store: VectorStoreService,
+  ) {}
 
   async execute(): Promise<any> {
     const movie = this.configService.get<{ id: string }>('movie');
@@ -45,7 +49,7 @@ export class FetchSeriesHandler implements IQueryHandler<FetchSeriesQuery> {
     });
 
     await this.saveDocuments(JSON.stringify(episodes, null, episodes.length));
-
+    await this.store.load();
     return;
   }
 
@@ -65,6 +69,4 @@ export class FetchSeriesHandler implements IQueryHandler<FetchSeriesQuery> {
       },
     );
   };
-
-  private createEmbedding = (key: string) => {};
 }

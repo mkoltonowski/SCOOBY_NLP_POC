@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import * as fg from 'fast-glob';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { GenerateEmbeddingsCommand } from '../impl/generate-embeddings.command';
+import { VectorStoreService } from '../../service/vector-store.service';
 
 @CommandHandler(GenerateEmbeddingsCommand)
 export class GenerateEmbeddingsHandler
@@ -15,7 +16,7 @@ export class GenerateEmbeddingsHandler
   private readonly outDir = 'embeddings';
   private readonly modelId = 'Xenova/e5-large-v2';
 
-  constructor() {}
+  constructor(private readonly store: VectorStoreService) {}
 
   async execute(): Promise<void> {
     env.cacheDir = './models';
@@ -38,7 +39,9 @@ export class GenerateEmbeddingsHandler
         path.basename(file).replace(/\.json$/i, '.emb.json'),
       );
       await fs.writeFile(outPath, JSON.stringify(vectors));
-      this.logger.log(`✅ ${outPath}`);
+      this.logger.log(`${outPath}`);
+
+      await this.store.load();
     }
   }
 }
