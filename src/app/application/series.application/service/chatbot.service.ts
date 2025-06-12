@@ -34,10 +34,19 @@ export class ChatService {
       {
         role: 'system',
         content:
-          'Respond only to questions regarding the context, only in polish. Before responding always mention the series title',
+          'Twoją rolą jest odpowiadać użytkownikowi tylko na pytania związane z serią scooby-doo, czerp wiedzę z kontekstu',
       },
-      { role: 'system', content: context },
+      {
+        role: 'system',
+        content: 'Jesteś specjalistycznym modelem do analizy kreskówek.',
+      },
+      { role: 'system', content: `### CONTEXT ${context}` },
       { role: 'user', content: question },
+      {
+        role: 'system',
+        content:
+          'Jeżeli użytkownik nie zapyta o serial scooby doo, odmów udzielenia odpowiedzi i odrzuć kontekst ',
+      },
     ];
 
     const rsp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -49,7 +58,7 @@ export class ChatService {
       body: JSON.stringify({
         model: 'google/gemma-3-1b-it:free',
         messages,
-        temperature: 0.7,
+        temperature: 0.1,
       }),
     }).then((r) => r.json());
 
